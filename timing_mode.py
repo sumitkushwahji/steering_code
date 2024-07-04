@@ -1,7 +1,7 @@
 import asyncio
-import serial
 import time
 import csv
+import numpy as np
 from datetime import datetime
 
 from receiver import Receiver
@@ -243,7 +243,7 @@ def timing_mode_impliment():
                                 (3e-9 < abs(avg_reading) < 5e-9)
                             ) and not steering:  # Initiate LOCK condition
                                 print(" Near LOCK mode : 1 ns to 4 ns")
-                                if (error_UL > 0) & (
+                                if (initialization.error_UL > 0) & (
                                     corr_count_LM == 1
                                 ):  # Apply correction immedietly once to slowdown  the drift rate if error >0
                                     Near_Lock_mode = 1
@@ -251,8 +251,8 @@ def timing_mode_impliment():
                                     Unlock_I = 0
                                     steer_action = 0
                                     signal.set()
-                                    # send_cmd_Rb(-0.00178, 0)   # 700 ns of drift to be compensated in 10 minutes
-                                    send_cmd_Rb(-0.003350, 0)
+                                    # rb_device.send_command(-0.00178, 0)   # 700 ns of drift to be compensated in 10 minutes
+                                    rb_device.send_command(-0.003350, 0)
                                     TIC_4_slope.append(float(data1[0]))
                                     if (
                                         len(TIC_4_slope) > 3
@@ -271,7 +271,7 @@ def timing_mode_impliment():
                                         else:
                                             Ini_slope = 1
 
-                                elif (error_UL < 0) & (
+                                elif (initialization.error_UL < 0) & (
                                     corr_count_LM == 1
                                 ):  # Apply correction immedietly once to slowdown  the drift rate if error >0
                                     Near_Lock_mode = 1
@@ -280,8 +280,8 @@ def timing_mode_impliment():
                                     steer_action = 0
                                     # slow_corr =0  # Repeat Slow correction. Needed if the required correction is not applied correctly
                                     signal.set()
-                                    # send_cmd_Rb(0.00178, 0)   #  700 ns of drift to be compensated in 10 minutes
-                                    send_cmd_Rb(0.003350, 0)
+                                    # rb_device.send_command(0.00178, 0)   #  700 ns of drift to be compensated in 10 minutes
+                                    rb_device.send_command(0.003350, 0)
                                     TIC_4_slope.append(float(data1[0]))
                                     if (
                                         len(TIC_4_slope) > 3
@@ -308,11 +308,11 @@ def timing_mode_impliment():
                                     count = count + 1
                                     freq_4_slope.append(float(data1[0]))
                                     if (
-                                        len(freq_4_slope) > steering_int
+                                        len(freq_4_slope) > initialization.steering_int
                                     ):  # Every latest 60 s
                                         freq_4_slope.pop(0)
                                     # if ((count % steering_int ==0) & (len(freq_4_slope)  == steering_int)) :
-                                    if count % steering_int == 0:
+                                    if count % initialization.steering_int == 0:
                                         data_pointF = list(
                                             range(1, len(freq_4_slope) + 1)
                                         )
@@ -326,44 +326,27 @@ def timing_mode_impliment():
                                         Freq_corr = slope * 1e7
                                         phase_corr = (
                                             (0 - float(data1[0])) * 1e7
-                                        ) / phase_time_const
+                                        ) / initialization.phase_time_const
                                         Total_corr = Freq_corr - phase_corr
                                         print(f"Total Correction applied: {Total_corr}")
-                                        # if abs(Total_corr) < 0.011: # Max limit
-                                        #     if Total_corr > 0 and Total_corr < 0.00008  : # Less than lower limit
-                                        #         signal.set()
-                                        #         send_cmd_Rb(0.00008, 1)
-                                        #         steer_action =1
-                                        #         print("Freq Correction is less than Positive lower limit hence, lower limit is applied")
-                                        #     elif Total_corr < 0 and Total_corr < -0.00008: # Less than lower limit
-                                        #         signal.set()
-                                        #         send_cmd_Rb(-0.00008, 1)
-                                        #         steer_action =1
-                                        #         print("Freq Correction is less than Negative lower limit hence, lower limit is applied")
-                                        #     else:  # Between Max and Min limits
-                                        #         signal.set()
-                                        #         send_cmd_Rb(Total_corr, 1)
-                                        #         steer_action =1
-                                        #         print("Freq Correction is in limits & send to Rb")
-                                        # elif abs(Total_corr) > 0.011: # max limit
                                         if abs(Total_corr) > 0.011:  # max limit
                                             if Total_corr > 0:
                                                 signal.set()
-                                                send_cmd_Rb(0.010, 1)
+                                                rb_device.send_command(0.010, 1)
                                                 steer_action = 1
                                                 print(
                                                     "Freq Correction is more than positive limits & send to Rb"
                                                 )
                                             else:  # Total_corr < 0:
                                                 signal.set()
-                                                send_cmd_Rb(-0.010, 1)
+                                                rb_device.send_command(-0.010, 1)
                                                 steer_action = 1
                                                 print(
                                                     "Freq Correction is less than Negitive limits & send to Rb"
                                                 )
                                         else:  # Between Max and Min limits
                                             signal.set()
-                                            send_cmd_Rb(Total_corr, 1)
+                                            rb_device.send_command(Total_corr, 1)
                                             steer_action = 1
                                             print(
                                                 "Freq Correction is in limits & send to Rb"

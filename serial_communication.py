@@ -1,6 +1,8 @@
 # serial_communication.py
 
 import serial
+from serial import serialutil
+import serial.tools.list_ports
 import time
 
 

@@ -1,8 +1,16 @@
+# rb_device.py
+
+
+
 import struct
 import math
 from datetime import datetime
 from utilities import compute_checksum
 import csv
+import initialization
+
+
+initialization.initialize_globals
 
 class RbDevice:
     def __init__(self, serial_comm):
@@ -36,8 +44,8 @@ class RbDevice:
 
         return curr_in_hz, current_value, current_value_bytes.hex(), True
 
-    def send_command(self, apply_corr, lock_flag):
-        signal.wait()
+    def send_cmd_Rb(self, apply_corr, lock_flag):
+        initialization.signal.wait()
         
         if lock_flag == 0:
             new_shift = apply_corr
@@ -47,14 +55,14 @@ class RbDevice:
 
         if math.isnan(new_shift):
             print("Error: New_shift is NaN. Cannot proceed with the operation.")
-            signal.clear()
+            initialization.signal.clear()
             return
 
         try:
             shift_in_device_units = round(new_shift / 3.725 * 1e9)
         except ValueError as e:
             print(f"ValueError occurred: {e}")
-            signal.clear()
+            initialization.signal.clear()
             return
 
         shift_in_device_units_clamped = max(min(shift_in_device_units, 2147483647), -2147483648)
@@ -78,4 +86,4 @@ class RbDevice:
                 writer = csv.DictWriter(csvfile, fieldnames=Correction_info.keys())
                 writer.writerow(Correction_info)
 
-        signal.clear()
+        initialization.signal.clear()

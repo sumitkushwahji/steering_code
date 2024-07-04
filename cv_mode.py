@@ -5,6 +5,9 @@ import pandas as pd
 import time
 import os
 from datetime import datetime, timedelta
+from utils import mjd_today, is_it_today, mjd_to_utc, extract_time_from_filename
+from file_operations import latest_file_in_directory, read_file_data
+from cv_processing import process_CV, apply_CV_corrections
 
 # Initialize global variables
 initialize_globals()
@@ -30,8 +33,8 @@ def cv_mode_implement():
     time.sleep(150)
 
     # Define the base directory from where the files need to read
-    DO_base_dir = r"C:\Users\VISHAL\Documents\Accord\Accord_vbs\data_log\CV43_V3"
-    Ref_base_dir = r"C:\Users\VISHAL\Documents\Accord\Accord_vbs\data_log\CV42_V3"
+    DO_base_dir = r"C:\Users\acer\Desktop\Project\npl\Data_Log_DO"
+    Ref_base_dir = r"C:\Users\acer\Desktop\Project\npl\Data_Log_REF"
 
     rept_search_time = 60  # Waiting time to check for the new CGGTTS files  (seconds)
     Previous_DO_file = None
@@ -189,51 +192,129 @@ def cv_mode_implement():
                     Time_diff, CV_STtime = process_CV(df_Ref, df_DO, all_unique_MJDs, all_unique_SAT, Freq_CV_list)
                     time_diff_value = Time_diff["CV_avg_diff"].iloc[0]
 
-                    if time_diff_value is not None and Time_diff.empty is False:
-                        CV_STtime_str = CV_STtime.strftime("%Y-%m-%d %H:%M:%S")
-                        CV_performance = {
-                            "Common View Configuration Status": "Good",
-                            "CV_AVG_Time_diff": time_diff_value,
-                            "CV_start_time": CV_start_time.strftime("%Y-%m-%d %H:%M:%S"),
-                            "CV_STtime": CV_STtime_str,
-                            "DO file": DO_latest_file,
-                            "Ref file": Ref_latest_file,
-                        }
+                    # print(f"Commonview time difference value: {time_diff_value}")
+                    if time_diff_value is not None :  # check if the CV_diff is valid and store the values 
+                        # print(f"time differece : \n {Time_diff}")
+                        
+                        CV_performance =[]
+                        CV_file_row = []
+                        Time = time.ctime(time.time())
+                        # # Create a new row to append
+                        new_row = {'Time': Time, 'CV_STtime': CV_STtime,'CV_Session': CV_session, 'CV_Time_Diff': time_diff_value}
+                        print(f"NEW ROW :{new_row}")
+                        # # Append the new row to the DataFrame
+                    
+                        CV_performance.append(new_row)
+                        # # Write the data to a CSV file for record 
+                        # CV_performance_df = pd.DataFrame(CV_performance)
+                        # CV_performance_df.to_csv(r'C:\Users\VISHAL\Desktop\project\data\CV_steer_result.csv', mode='a', header=False, index=False)
+                        # # CV_performance = pd.DataFrame(CV_performance)
+                        
+                                                            
 
-                        print("Common View Time Difference :\n", Time_diff)
-                        Prev_CV_record.append(CV_performance)
+                        if abs(CV_performance[-1]['CV_Time_Diff']) > 1000 : # Go back to Timing mode because it is not easy to correct such a big drift through CV (1000 ns)
+                            Timing_mode = True
+                            CV_mode = False
+                            print("Activating TIMING MODE as the difference is more than 1 micro second")
+                            break
+                        
+                                        
+                        def time_to_timestamp(time_str):
+                            return time.mktime(time.strptime(time_str, "%a %b %d %H:%M:%S %Y"))
+
+                        if (CV_session > 1) and not first_session:
+                            # Convert 'Time' strings to timestamps for comparison
+                            current_CV_time = time_to_timestamp(CV_performance[0]['Time'])
+                            current_CV_STtime = CV_performance[0]['CV_STtime']
+                            prev_CV_STtime = Prev_CV_record[0]['CV_STtime']
+
+                            print(f"previous_CV_STtime: {prev_CV_STtime}")
+                            # prev_CV_time = time_to_timestamp(Prev_CV_record[0]['Time'])
+                            # Convert current_CV_time (UNIX timestamp) to datetime
+                            current_CV_time_dt = datetime.utcfromtimestamp(current_CV_time)
+                            # Difference between the sessions as per STTime in CGGTTS files
+                            session_diff = (current_CV_STtime - prev_CV_STtime)*86400 # converting back into seconds *86400
+                            
+                            # The difference between the STTime and the current time in seconds 
+                            current_timestamp_utc = datetime.utcfromtimestamp(time.time())
+                            half_trkl =seconds_to_add = df_DO["TRKL"].unique()[0]/2
+
+                            current_CV_STtime = mjd_to_utc(CV_performance[0]['CV_STtime'], half_trkl)
+                            print(f"Current_CV_STtime: {current_CV_STtime}")
+                            print(f"Current_CV_time_dt: {current_CV_time_dt}")
+                            current_CV_STtime_dt = datetime.strptime(current_CV_STtime, "%Y-%m-%d %H:%M:%S")
+                            # correction_delay = current_CV_time - current_CV_STtime.apply(lambda x: current_timestamp_utc - x)
+                            correction_delay = (current_CV_time_dt - current_CV_STtime_dt).total_seconds()
+                            
+                            
+                            print(f"Common View Time difference: {time_diff_value}")
+                            print(f"Time lapsed from the previous CV session: {session_diff}")
+                            print(f"Correction delay: {correction_delay}")
+                            
+                            if 0 <= session_diff < (30 * 60):  # previous correction applied is not more than 30 minutes
+                                # Calculate the slope
+                                print(f"Previous record time diff: {Prev_CV_record[0]['CV_Time_Diff']}")
+                                print(f"Current CV Time difference value: {time_diff_value}")
+                                print(f"time since CV difference is measured:{session_diff} ")
+                                
+                                apply_CV_corrections(CV_session, time_diff_value, Prev_CV_record[0]['CV_Time_Diff'], session_diff, correction_delay)
+
+                                # print(f"Previous record stored from 2nd session  :\n {Prev_CV_record}")
+                                Prev_CV_record = CV_performance.copy()  # Replace the Previous values with the current values
+                                    
+                                Previous_DO_file = DO_latest_file # Update the latest file read
+                                Previous_Ref_file = Ref_latest_file # Update the latest file read
+                                                                
+                                print("Please Wait 12 minutes to repeat the process..... ")
+                                time.sleep(720)   # Wait for few minutes to repeat search for new files 
+                                CV_session = CV_session+1
+                                first_session = False
+                                DO_file_found = False  # Repeat search for the new files 
+                                Ref_file_found = False 
+                                both_files_found = False  
+                            else:
+                                print("Time since previous correction applied is more than 30 minutes. There may be some missing sessions in between")
+                        
+                        elif first_session and time_diff_value is not None : 
+                            Prev_CV_record = CV_performance.copy() #  store this first session results
+                            # Prev_CV_record = [{'CV_Time_Diff': cv_record['CV_Time_Diff']} for cv_record in CV_performance]
+                            print(f"Last Error wrt Navic : {error_wrt_navic}")
+                            print(f"Common View error in 1st session : {time_diff_value}")
+                            
+                            current_time = datetime.utcfromtimestamp(time.time())
+                            time_lapsed_CVmode = (current_time - CV_start_time).total_seconds()
+
+                            print(f"Time Lapsed since NaVIC mode: {time_lapsed_CVmode}")
+                            correction_delay = 0 
+                            apply_CV_corrections(CV_session, time_diff_value, error_wrt_navic, time_lapsed_CVmode, correction_delay)
+                            
+                            # print(f"Previous record stored as 1st session  :\n {Prev_CV_record}")
+                            Previous_DO_file = DO_latest_file # Update the latest file read
+                            Previous_Ref_file = Ref_latest_file # Update the latest file read
+                            CV_session = CV_session+1
+                            first_session = False
+                            DO_file_found = False  # Repeat search for the new files 
+                            Ref_file_found = False 
+                            both_files_found = False 
+                            print("Please Wait 12 minutes to repeat the process..... ")
+                            time.sleep(720)   # Wait for few minutes to repeat search for new files 
+
+                        else: # It means it is 1st session of the CV_session 
+                            new_row_record = {'Time': time.ctime(time.time()), 'CV_Session': CV_session, 'Time_Diff': time_diff_value}
+                            Prev_CV_record.append(new_row_record)
                     else:
-                        CV_performance = {
-                            "Common View Configuration Status": "Error",
-                            "DO file": DO_latest_file,
-                            "Ref file": Ref_latest_file,
-                        }
-                        print("Common View Processing Error")
-                        Prev_CV_record.append(CV_performance)
-                else:
-                    CV_performance = {
-                        "Common View Configuration Status": "Error",
-                        "DO file": DO_latest_file,
-                        "Ref file": Ref_latest_file,
-                    }
-                    print("Common View Processing Error")
-                    Prev_CV_record.append(CV_performance)
+                        print("CV Time difference is found to be NONE")
+                        DO_file_found = False  # Repeat search for the new files 
+                        Ref_file_found = False 
+                        both_files_found = False
+            else: 
+                print("These files doesnt belong to the same timeperiod to perform CV ")
+                # first_session = False
+                DO_file_found = False  # Repeat search for the new files 
+                Ref_file_found = False 
+                both_files_found = False                
+            
+        else:
+            print(f"one of the file is Empty, cannot caluclate CV ")
 
-            else:
-                CV_performance = {
-                    "Common View Configuration Status": "Error",
-                    "DO file": DO_latest_file,
-                    "Ref file": Ref_latest_file,
-                }
-                print("Common View Processing Error")
-                Prev_CV_record.append(CV_performance)
-
-        if first_session:
-            first_session = False
-
-        # Save the previous DO and Ref files
-        Previous_DO_file = DO_latest_file
-        Previous_Ref_file = Ref_latest_file
-
-        # Wait for some time before next search
-        time.sleep(rept_search_time)
+        time.sleep(rept_search_time) # Waiting time to check for the new CGGTTS files 
