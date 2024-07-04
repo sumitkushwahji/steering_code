@@ -17,7 +17,7 @@ def cv_mode_implement():
     global Timing_mode, error_wrt_navic, rept_search_time, first_session, CV_start_time
     global DO_base_dir, Ref_base_dir, Previous_DO_file, Previous_Ref_file
     global Got_New_DO_file, Got_New_Ref_file, both_files_found, Freq_CV, CV_performance, file_path_DO
-    global df_DO, Un_time_DO, Un_SAT_DO, Un_freq_DO, df_Ref, Un_time_Ref, Un_SAT_Ref, Un_freq_Ref, time_diff_value
+    global df_DO, Un_time_DO, Un_SAT_DO, Un_freq_DO, df_Ref, Un_time_Ref, Un_SAT_Ref, Un_freq_Ref, time_diff_value, steering
 
     print("Common View Mode Activated ..........")
     first_session = True  # Flag to consider the available files as first session files

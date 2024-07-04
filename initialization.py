@@ -50,7 +50,7 @@ def initialize_globals():
     global i, Universal, Ini_slope, limit_counter, first_corr, corr_counter, wait_time
     global Timing_mode, CV_mode, CV_session, repeat_search, CV_performance, Prev_CV_record, freq_4_slope
     global read_count, avg_read, Ster_sessions, PID_flip, corr_intr, first_time, Fst, max_int32, min_int32
-    global steering_int, phase_time_const
+    global steering_int, phase_time_const, steering
 
     signal = threading.Event()
     phase = threading.Event()
@@ -99,4 +99,5 @@ def initialize_globals():
     max_int32 = 2**31 - 1
     min_int32 = -(2**31)
     steering_int = 60
+    steering= False
     phase_time_const = 1.5 * steering_int
