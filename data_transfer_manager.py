@@ -1,24 +1,20 @@
-# data_transfer_manager_client_v3.py
-
-
+# data_transfer_manager.py
 import os
 import requests
 import time
 import threading
 import subprocess
 import urllib3
-from collections import deque
-import configparser
 
 class DataTransferManager:
-    def __init__(self, exe_path, ip_address, parent_directory, file_history):
+    def __init__(self, exe_path, ip_address, parent_directory, file_history, source):
         self.exe_path = exe_path
         self.ip_address = ip_address
         self.parent_directory = parent_directory
         self.file_history = file_history
         self.list_url = 'https://bhartiyasamay.in/do/rx/list'  # Replace with the actual URL of your endpoint
         self.item_url = 'https://bhartiyasamay.in/do/rx'  # Replace with the actual URL of your endpoint
-        self.source = "npli"
+        self.source = source
         self.type = "navic"
         self.filter_ext = [".ini", "_log", "_config"]
         self.sent_files = self._get_sent_files()
@@ -117,25 +113,3 @@ class DataTransferManager:
             print(msg)
             self.start_app()  
             time.sleep(300)  # 300 seconds = 5 minutes
-
-
-# Get the directory of the current script
-current_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Construct the path to CggttsFtpClient.exe
-exe_path = os.path.join(current_dir, 'CggttsFtpClient.exe')
-
-# Construct the path to the Data_Log_DO directory
-parent_directory = os.path.join(current_dir, 'Data_Log_REF')
-
-print(f"Executable path: {exe_path}")
-print(f"Parent directory path: {parent_directory}")
-# parent_directory = "C:\\Users\\acer\\Desktop\\Project\\npl-clock-controller-service\\Data_Log_REF\\"
-file_history = "sent_files_ref.txt"
-# exe_path = "C:\\Users\\acer\\Desktop\\Project\\npl-clock-controller-service\\CggttsFtpClient.exe"
-ip_address = '172.16.26.41'    # NAVIC Receiver IP Client 42
-
-data_transfer_manager = DataTransferManager(exe_path, ip_address, parent_directory, file_history)
-
-data_transfer_manager_thread = threading.Thread(target=data_transfer_manager.run_data_transfer)
-data_transfer_manager_thread.start()

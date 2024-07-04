@@ -115,9 +115,23 @@ class DataTransferManager:
             self.start_app()  
             time.sleep(300)  # 300 seconds = 5 minutes
 
-parent_directory = "C:\\Users\\acer\\Desktop\\Project\\npl-clock-controller-service\\Data_Log_DO\\"
-file_history = "sent_files_ref.txt"
-exe_path = "C:\\Users\\acer\\Desktop\\Project\\npl-clock-controller-service\\CggttsFtpClient.exe"
+# Get the directory of the current script
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Construct the path to CggttsFtpClient.exe
+exe_path = os.path.join(current_dir, 'CggttsFtpClient.exe')
+
+# Construct the path to the Data_Log_DO directory
+parent_directory = os.path.join(current_dir, 'Data_Log_DO')
+
+print(f"Executable path: {exe_path}")
+print(f"Parent directory path: {parent_directory}")
+
+
+
+# parent_directory = "C:\\Users\\acer\\Desktop\\Project\\npl\\Data_Log_DO\\"
+file_history = "sent_files_do.txt"
+# exe_path = "C:\\Users\\acer\\Desktop\\Project\\npl-clock-controller-service\\CggttsFtpClient.exe"
 ip_address = '172.16.26.42'    # NAVIC Receiver IP Client 42
 
 data_transfer_manager = DataTransferManager(exe_path, ip_address, parent_directory, file_history)
