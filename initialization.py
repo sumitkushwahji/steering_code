@@ -48,20 +48,47 @@ corr_intr = 900
 first_time = 1
 Fst = 0
 max_int32 = 2**31 - 1
-min_int32 = -2**31
+min_int32 = -(2**31)
 steering_int = 60
 phase_time_const = 1.5 * steering_int
 
+
 def initialize_csv_files():
-    with open('Rb_Corrections.csv', 'w', newline='') as csvfile:
-        Column_names02 = ['Time stamp', 'Before_correction', 'After_correction', 'Hex_before', 'Bytes_before', 'Bytes_applied', 'Hex_applied', 'Hex_after', 'Bytes_after', 'Check_sum_match']
+    with open("Rb_Corrections.csv", "w", newline="") as csvfile:
+        Column_names02 = [
+            "Time stamp",
+            "Before_correction",
+            "After_correction",
+            "Hex_before",
+            "Bytes_before",
+            "Bytes_applied",
+            "Hex_applied",
+            "Hex_after",
+            "Bytes_after",
+            "Check_sum_match",
+        ]
         writer = csv.DictWriter(csvfile, fieldnames=Column_names02)
         writer.writeheader()
 
-    with open('CV_Corrections.csv', 'w', newline='') as csvfile:
-        Column_names03 = ['Time', 'CV_Session', 'Correction_delay', 'CV_Time_Diff', 'delta_f1', 'delta_f2', 'delta_f3', 'Corr_applied']
+    with open("CV_Corrections.csv", "w", newline="") as csvfile:
+        Column_names03 = [
+            "Time",
+            "CV_Session",
+            "Correction_delay",
+            "CV_Time_Diff",
+            "delta_f1",
+            "delta_f2",
+            "delta_f3",
+            "Corr_applied",
+        ]
         writer = csv.DictWriter(csvfile, fieldnames=Column_names03)
         writer.writeheader()
+
+    with open("TIC_data.csv", "w", newline="") as csvfile:
+        Column_name = ["Time stamp", "TIC reading"]
+        writer = csv.DictWriter(csvfile, fieldnames=Column_name)
+        writer.writeheader()
+
 
 def initialize_globals():
     global signal, phase, lock_mode, one_time_UL, near_lock, corr_count, corr_count_LM, init_lock
@@ -117,6 +144,6 @@ def initialize_globals():
     first_time = 1
     Fst = 0
     max_int32 = 2**31 - 1
-    min_int32 = -2**31
+    min_int32 = -(2**31)
     steering_int = 60
     phase_time_const = 1.5 * steering_int

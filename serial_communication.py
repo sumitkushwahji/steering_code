@@ -1,9 +1,18 @@
+# serial_communication.py
+
 import serial
 import time
 
+
 class SerialCommunication:
     def __init__(self, port, baudrate):
-        self.ser = serial.Serial(port=port, baudrate=baudrate, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, timeout=1)
+        self.ser = serial.Serial(
+            port=port,
+            baudrate=baudrate,
+            bytesize=serial.EIGHTBITS,
+            stopbits=serial.STOPBITS_ONE,
+            timeout=1,
+        )
 
     def open(self):
         if not self.ser.isOpen():
