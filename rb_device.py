@@ -30,7 +30,11 @@ class RbDevice:
 
         current_value_bytes = data_read[4:8]
         current_value = int.from_bytes(current_value_bytes, byteorder='big', signed=True)
-        curr_in_hz = current_value * 3.725 * 1e-9
+        curr_in_hz = current_value * 3.725 * 1E-9
+        # print("Current shift in Hz:", curr_in_Hz)
+        check_sum_match = 1
+        # Checksum validation (optional, but recommended)
+
 
         received_checksum = data_read[8]
         calculated_checksum = compute_checksum(data_read[4:8].hex())
@@ -38,11 +42,12 @@ class RbDevice:
 
         if received_checksum != calculated_checksum_int:
             print(f"Checksum mismatch: received {received_checksum}, calculated {calculated_checksum_int}")
-            return None, None, None, None
+            check_sum_match = 0
+            return None
 
         self.serial_comm.flush_input()
 
-        return curr_in_hz, current_value, current_value_bytes.hex(), True
+        return curr_in_hz, current_value, current_value_bytes.hex(), check_sum_match
 
     def send_cmd_Rb(self, apply_corr, lock_flag):
         initialization.signal.wait()
@@ -59,7 +64,7 @@ class RbDevice:
             return
 
         try:
-            shift_in_device_units = round(new_shift / 3.725 * 1e9)
+            shift_in_device_units = round(new_shift / 3.725 * 1E9)
         except ValueError as e:
             print(f"ValueError occurred: {e}")
             initialization.signal.clear()

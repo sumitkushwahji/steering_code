@@ -8,18 +8,21 @@ from receiver import Receiver
 from serial_communication import SerialCommunication
 from rb_device import RbDevice
 import initialization
+from shared_resources import serial_comm
 
 # Global variables
 steering = False
 freq_4_slope = []
 error_record = []
 initialization.one_time_UL = 0
-Unlock_II = 0
+initialization.Unlock_II = 0
 Unlock_I = 0
 corr_count_LM = 1
 Universal = 0
 lock_flag = 0
 signal = None  # Assuming you have a global signal object
+
+
 
 
 def timing_mode_impliment():
@@ -37,7 +40,7 @@ def timing_mode_impliment():
     # Instantiate the SerialCommunication class
     TIC_ser = SerialCommunication(port="COM3", baudrate=115200)
     
-    rb_device = RbDevice(TIC_ser)
+    rb_device = RbDevice(serial_comm)
     # Open the TIC serial port
     time.sleep(1)
     TIC_ser.open()
@@ -89,20 +92,20 @@ def timing_mode_impliment():
                             print(
                                 f"Latest 3 readings average value in ns : {avg_reading*1E+9}"
                             )
-                            initialization.error_UL = (
+                            error_UL = (
                                 initialization.set_point - avg_reading
                             )
                             # More conditions and actions based on error_UL
-                            error_record.append(initialization.error_UL)
+                            error_record.append(error_UL)
 
                             if len(error_record) > 20:
                                 error_record.pop(0)
 
-                            if abs(avg_reading) > 1e-6:  # UN LOCK condition
+                            if abs(avg_reading) > 1E-6:  # UN LOCK condition
                                 print("UNLOCK mode: More than 1 us")
-                                Universal = 1
+                                initialization.Universal = 1
                                 lock_flag = 0  # 0 means not locked yet
-                                if (initialization.error_UL < 0) & (
+                                if (error_UL < 0) & (
                                     initialization.one_time_UL == 0
                                 ):  # Apply correction immediately once as the reading starts if error < 0
                                     corr_to_be = 0.9  # the frequency correction is applied with maximum drift for 300 s
@@ -110,11 +113,9 @@ def timing_mode_impliment():
                                     initialization.steer_action = 0
                                     initialization.signal.set()
                                     rb_device.send_cmd_Rb(corr_to_be, 0)
-                                elif (initialization.error_UL > 0) & (
+                                elif (error_UL > 0) & (
                                     initialization.one_time_UL == 0):  # Apply correction immediately once as the reading starts if error > 0
-                                    corr_to_be = (
-                                        -0.9
-                                    )  # the frequency correction is applied with maximum drift for 300 s
+                                    corr_to_be = -0.9  # the frequency correction is applied with maximum drift for 300 s
                                     initialization.one_time_UL = 1
                                     initialization.steer_action = 0
                                     initialization.signal.set()
@@ -122,135 +123,135 @@ def timing_mode_impliment():
                                 elif (
                                     initialization.read_count % 100
                                 ) == 0:  # Apply correction EVERY 300 seconds (5 minutes)
-                                    if initialization.error_UL > 0:
+                                    if error_UL > 0:
                                         corr_to_be = -0.9
                                         initialization.steer_action = 0
                                         initialization.signal.set()
                                         rb_device.send_cmd_Rb(corr_to_be, 0)
-                                    elif initialization.error_UL < 0:
+                                    elif error_UL < 0:
                                         corr_to_be = 0.9
                                         initialization.steer_action = 0
                                         initialization.signal.set()
                                         rb_device.send_cmd_Rb(corr_to_be, 0)
 
                             elif (
-                                100e-9 < abs(avg_reading) < 1e-6
-                            ) and not initialization.steering:  # Near to the LOCK condition
+                                100E-9 < abs(avg_reading) < 1E-6) and not initialization.steering:  # Near to the LOCK condition
                                 print("UNLOCK mode: 100 ns to 1 us ")
-                                Universal = 1
-                                if (initialization.error_UL > 0) & (
-                                    Unlock_II == 0
+                                initialization.Universal = 1
+                                if (error_UL > 0) & (
+                                    initialization.Unlock_II == 0
                                 ):  # Apply correction immediately once as the reading starts if error > 0
-                                    Unlock_II = 1
+                                    initialization.Unlock_II = 1
                                     initialization.steer_action = 0
                                     initialization.signal.set()
                                     rb_device.send_cmd_Rb(
                                         -0.05, 0
                                     )  # 700 ns of drift to be compensated in 10 minutes, Not locked yet
-                                elif (initialization.error_UL < 0) & (
-                                    Unlock_II == 0
+                                elif (error_UL < 0) & (
+                                    initialization.Unlock_II == 0
                                 ):  # Apply correction immediately once as the reading starts if error < 0
-                                    Unlock_II = 1
+                                    initialization.Unlock_II = 1
                                     initialization.steer_action = 0
                                     initialization.signal.set()
                                     rb_device.send_cmd_Rb(
                                         0.05, 0
                                     )  # 700 ns of drift to be compensated in 10 minutes, Not locked yet
-                                if (
+                                if ((
                                     initialization.read_count % 30
-                                ) == 0:  # Apply correction EVERY 600 seconds (10 minutes)
-                                    if initialization.error_UL > 0:
+                                ) == 0):  # Apply correction EVERY 600 seconds (10 minutes)
+                                    if error_UL > 0:
                                         corr_to_be = -0.05
                                         initialization.steer_action = 0
                                         initialization.signal.set()
                                         rb_device.send_cmd_Rb(corr_to_be, 0)
-                                    elif initialization.error_UL < 0:
+                                    elif error_UL < 0:
                                         corr_to_be = 0.05
+                                        initialization.steer_action = 0
                                         initialization.signal.set()
                                         rb_device.send_cmd_Rb(corr_to_be, 0)
 
                             elif (
-                                20e-9 < abs(avg_reading) < 100e-9
+                                20E-9 < abs(avg_reading) < 100E-9
                             ) and not initialization.steering:  # Near to the LOCK condition
                                 print("UNLOCK mode: 20 ns to 100 ns ")
-                                if (initialization.error_UL > 0) & (
-                                    Unlock_I == 0
+                                if (error_UL > 0) & (
+                                    initialization.Unlock_I == 0
                                 ):  # Apply correction immediately once as the reading starts if error > 0
-                                    Unlock_I = 1
+                                    initialization.Unlock_I = 1
                                     initialization.steer_action = 0
                                     initialization.signal.set()
                                     rb_device.send_cmd_Rb(
                                         -0.01, 0
                                     )  # 700 ns of drift to be compensated in 10 minutes, Not locked yet
-                                elif (initialization.error_UL < 0) & (
-                                    Unlock_I == 0
+                                elif (error_UL < 0) & (
+                                    initialization.Unlock_I == 0
                                 ):  # Apply correction immediately once as the reading starts if error < 0
-                                    Unlock_I = 1
+                                    initialization.Unlock_I = 1
                                     initialization.steer_action = 0
                                     initialization.signal.set()
                                     rb_device.send_cmd_Rb(
                                         0.01, 0
                                     )  # 700 ns of drift to be compensated in 10 minutes, Not locked yet
-                                if (
+                                if ((
                                     initialization.read_count % 30
-                                ) == 0:  # Apply correction EVERY 600 seconds (10 minutes)
-                                    if initialization.error_UL > 0:
+                                ) == 0):  # Apply correction EVERY 600 seconds (10 minutes)
+                                    if error_UL > 0:
                                         corr_to_be = -0.01
                                         initialization.steer_action = 0
                                         initialization.signal.set()
                                         rb_device.send_cmd_Rb(corr_to_be, 0)
-                                    elif initialization.error_UL < 0:
+                                    elif error_UL < 0:
                                         corr_to_be = 0.01
                                         initialization.steer_action = 0
                                         initialization.signal.set()
                                         rb_device.send_cmd_Rb(corr_to_be, 0)
 
                             elif (
-                                5e-9 < abs(avg_reading) < 20e-9
+                                5E-9 < abs(avg_reading) < 20E-9
                             ) and not initialization.steering:  # Near to the LOCK condition
                                 print("UNLOCK mode: 3 ns to 20 ns ")
-                                if (initialization.error_UL > 0) & (
-                                    Unlock_I == 0
+                                if (error_UL > 0) & (
+                                    initialization.Unlock_I == 0
                                 ):  # Apply correction immediately once as the reading starts if error > 0
-                                    Unlock_I = 1
+                                    initialization.Unlock_I = 1
                                     initialization.steer_action = 0
                                     initialization.signal.set()
                                     rb_device.send_cmd_Rb(
                                         -0.005, 0
                                     )  # 700 ns of drift to be compensated in 10 minutes, Not locked yet
-                                elif (initialization.error_UL < 0) & (
-                                    Unlock_I == 0
+                                elif (error_UL < 0) & (
+                                    initialization.Unlock_I == 0
                                 ):  # Apply correction immediately once as the reading starts if error < 0
-                                    Unlock_I = 1
+                                    initialization.Unlock_I = 1
                                     initialization.steer_action = 0
                                     initialization.signal.set()
                                     rb_device.send_cmd_Rb(
                                         0.005, 0
                                     )  # 700 ns of drift to be compensated in 10 minutes, Not locked yet
-                                if (
+                                if ((
                                     initialization.read_count % 15
-                                ) == 0:  # Apply correction EVERY 600 seconds (10 minutes)
-                                    if initialization.error_UL > 0:
+                                ) == 0):  # Apply correction EVERY 600 seconds (10 minutes)
+                                    if error_UL > 0:
                                         corr_to_be = -0.005
                                         initialization.steer_action = 0
                                         initialization.signal.set()
                                         rb_device.send_cmd_Rb(corr_to_be, 0)
-                                    elif initialization.error_UL < 0:
+                                    elif error_UL < 0:
                                         corr_to_be = 0.005
                                         initialization.steer_action = 0
                                         initialization.signal.set()
                                         rb_device.send_cmd_Rb(corr_to_be, 0)
 
                             elif (
-                                (3e-9 < abs(avg_reading) < 5e-9)
+                                (3E-9 < abs(avg_reading) < 5E-9)
                             ) and not initialization.steering:  # Initiate LOCK condition
                                 print(" Near LOCK mode : 1 ns to 4 ns")
-                                if (initialization.error_UL > 0) & (
-                                    corr_count_LM == 1
+                                if (error_UL > 0) & (
+                                    initialization.corr_count_LM == 1
                                 ):  # Apply correction immedietly once to slowdown  the drift rate if error >0
                                     initialization.Near_Lock_mode = 1
-                                    corr_count_LM = 0
-                                    Unlock_I = 0
+                                    initialization.corr_count_LM = 0
+                                    initialization.Unlock_I = 0
                                     initialization.steer_action = 0
                                     initialization.signal.set()
                                     # rb_device.send_cmd_Rb(-0.00178, 0)   # 700 ns of drift to be compensated in 10 minutes
@@ -273,12 +274,12 @@ def timing_mode_impliment():
                                         else:
                                             initialization.Ini_slope = 1
 
-                                elif (initialization.error_UL < 0) & (
-                                    corr_count_LM == 1
+                                elif (error_UL < 0) & (
+                                    initialization.corr_count_LM == 1
                                 ):  # Apply correction immedietly once to slowdown  the drift rate if error >0
                                     initialization.Near_Lock_mode = 1
-                                    corr_count_LM = 0
-                                    Unlock_I = 0
+                                    initialization.corr_count_LM = 0
+                                    initialization.Unlock_I = 0
                                     initialization.steer_action = 0
                                     # slow_corr =0  # Repeat Slow correction. Needed if the required correction is not applied correctly
                                     initialization.signal.set()
@@ -302,7 +303,7 @@ def timing_mode_impliment():
                                         else:
                                             initialization.Ini_slope = 1
 
-                            elif (abs(avg_reading) < 100e-9) and initialization.steering:
+                            elif (abs(avg_reading) < 100E-9) and initialization.steering:
                                 initialization.read_count = 0
                                 initialization.wait_time = 0
 
@@ -310,24 +311,24 @@ def timing_mode_impliment():
                                     initialization.count = initialization.count + 1
                                     initialization.freq_4_slope.append(float(data1[0]))
                                     if (
-                                        len(freq_4_slope) > initialization.steering_int
+                                        len(initialization.freq_4_slope) > initialization.steering_int
                                     ):  # Every latest 60 s
                                         initialization.freq_4_slope.pop(0)
                                     # if ((count % steering_int ==0) & (len(freq_4_slope)  == steering_int)) :
-                                    if count % initialization.steering_int == 0:
+                                    if initialization.count % initialization.steering_int == 0:
                                         initialization.data_pointF = list(
-                                            range(1, len(freq_4_slope) + 1)
+                                            range(1, len(initialization.freq_4_slope) + 1)
                                         )
                                         slope, initialization.intercept = np.polyfit(
-                                            initialization.data_pointF, freq_4_slope, 1
+                                            initialization.data_pointF, initialization.freq_4_slope, 1
                                         )  # y = mx + c ; ouput p = [m,c]
                                         print(
                                             f"Slope of the TIC_data (Frequency): {slope}"
                                         )
                                         initialization.first_time = 0
-                                        Freq_corr = slope * 1e7
+                                        Freq_corr = slope * 1E7
                                         phase_corr = (
-                                            (0 - float(data1[0])) * 1e7
+                                            (0 - float(data1[0])) * 1E7
                                         ) / initialization.phase_time_const
                                         Total_corr = Freq_corr - phase_corr
                                         print(f"Total Correction applied: {Total_corr}")
@@ -355,7 +356,7 @@ def timing_mode_impliment():
                                             )
 
                                         check_error_value = all(
-                                            abs(value * 1e9) < 1
+                                            abs(value * 1E9) < 1
                                             for value in initialization.freq_4_slope
                                         )  # check is all the errors is less than 1 ns
 
@@ -363,28 +364,28 @@ def timing_mode_impliment():
                                             f"Rb is with in 1 ns wrt NavIC : {check_error_value}"
                                         )
 
-                                        if check_error_value and abs(slope) < (5e-12):
+                                        if check_error_value and abs(slope) < (5E-12):
                                             initialization.CV_mode = True
                                             initialization.Timing_mode = (
                                                 False  # Activate the Common view mode
                                             )
                                             TIC_ser.close()
-                                            freq_4_slope = (
+                                            initialization.freq_4_slope = (
                                                 []
                                             )  # reset the array to continue with the loop
-                                            count = 0
+                                            initialization.count = 0
                                             error_wrt_navic = float(
                                                 data1[0]
                                             )  # Store the value of the TIC error as an intial value
                                             break
 
                             elif (
-                                abs(avg_reading) > 100e-9
+                                abs(avg_reading) > 100E-9
                             ) and initialization.steering:  # If the TIC  reading is in lock range
                                 # Stop steering and apply phase correction
                                 initialization.steering = False
 
-                            elif abs(avg_reading) < 3e-9:  # Activate the steering algo
+                            elif abs(avg_reading) < 3E-9:  # Activate the steering algo
                                 initialization.steering = True
                                 print("Steering Activated..................")
                                 # if recevr_mode == 1: # Activate PID only in Timing mode

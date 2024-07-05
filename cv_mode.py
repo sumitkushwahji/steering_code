@@ -33,8 +33,9 @@ def cv_mode_implement():
     time.sleep(150)
 
     # Define the base directory from where the files need to read
-    DO_base_dir = r"C:\Users\acer\Desktop\Project\npl\Data_Log_DO"
-    Ref_base_dir = r"C:\Users\acer\Desktop\Project\npl\Data_Log_REF"
+    DO_base_dir = r"C:\Users\acer\Desktop\code\steering_code\Data_Log_DO"
+    Ref_base_dir = r"C:\Users\acer\Desktop\code\steering_code\Data_Log_REF"
+   
 
     rept_search_time = 60  # Waiting time to check for the new CGGTTS files  (seconds)
     Previous_DO_file = None
