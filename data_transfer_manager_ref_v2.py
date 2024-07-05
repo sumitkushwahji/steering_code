@@ -126,7 +126,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 exe_path = os.path.join(current_dir, 'CggttsFtpClient.exe')
 
 # Construct the path to the Data_Log_DO directory
-parent_directory = os.path.join(current_dir, 'Data_Log_REF')
+parent_directory = os.path.join(current_dir, 'Data_Log_REF') + '\\'
 
 print(f"Executable path: {exe_path}")
 print(f"Parent directory path: {parent_directory}")
